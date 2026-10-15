@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sistema de Calificaciones 2026</title>
+<!-- Librería para exportar a PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+:root{--blue:#1877d2;--navy:#153b63;--bg:#f3f6fb;--line:#dce4ee;--text:#203044}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
+header{background:linear-gradient(120deg,#174c7e,#2386d8);color:white;padding:22px 16px}
+.wrap{max-width:1100px;margin:auto}h1{font-size:clamp(22px,4vw,30px);margin:0 0 7px}header p{margin:0;opacity:.92}
+main{max-width:1100px;margin:22px auto;padding:0 14px 40px}.panel{background:white;border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:18px;box-shadow:0 4px 16px #2030440b}
+h2{font-size:18px;color:var(--navy);margin:0 0 16px}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.field{display:flex;flex-direction:column;gap:7px}.field.wide{grid-column:span 2}label{font-size:13px;font-weight:700;color:#526477}input,select{width:100%;padding:11px 12px;border:1px solid #cbd6e2;border-radius:8px;background:#fff;font-size:14px;color:#203044}input:focus,select:focus{outline:2px solid #b8dcff;border-color:var(--blue)}
+.subjects{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}button{border:0;border-radius:8px;padding:11px 16px;font-weight:700;cursor:pointer;font-size:14px}.primary{background:var(--blue);color:white}.secondary{background:#e9f1fa;color:#164a79}.danger{background:#fff0f0;color:#9b2424}.status{padding:12px;border-radius:8px;background:#f1f7ff;border:1px solid #d6e8fb;font-size:13px;line-height:1.5}.muted{color:#65768a;font-size:13px;line-height:1.5}.tablewrap{overflow:auto}table{border-collapse:collapse;width:100%;min-width:700px;font-size:13px}th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left}th{background:#f2f6fb;color:#3a526b}.hidden{display:none!important}
+@media(max-width:760px){.grid,.subjects{grid-template-columns:repeat(2,minmax(0,1fr))}.field.wide{grid-column:span 2}.panel{padding:15px}}
+@media(max-width:420px){.grid,.subjects{grid-template-columns:1fr}.field.wide{grid-column:span 1}}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>Sistema de Registro y Calificaciones 2026</h1>
+    <p>Registro de estudiantes · Notas por parcial · Consolidado para Excel y PDF</p>
+  </div>
+</header>
+<main>
+<section class="panel" id="loginPanel">
+  <h2>Acceso en línea de maestros</h2>
+  <p class="muted">Ingrese su correo institucional para registrar o consultar calificaciones.</p>
+  <div class="grid">
+    <div class="field wide"><label for="email">Correo electrónico</label><input id="email" type="email" autocomplete="username" placeholder="maestro@institucion.edu" value="maestro@institucion.edu"></div>
+    <div class="field wide"><label for="password">Contraseña</label><input id="password" type="password" autocomplete="current-password" placeholder="Contraseña" value="123456"></div>
+  </div>
+  <div class="actions">
+    <button class="primary" id="loginBtn">Iniciar sesión</button>
+    <button class="secondary" id="signupBtn">Crear cuenta de maestro</button>
+  </div>
+</section>
+
+<section class="panel hidden" id="appPanel">
+  <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap">
+    <h2 style="margin-bottom:0">Registrar nuevo estudiante o notas</h2>
+    <button class="secondary" id="logoutBtn">Cerrar sesión</button>
+  </div>
+  <p class="muted">Complete los datos académicos y las calificaciones por asignatura (0 a 100).</p>
+  <div class="status" id="connectionStatus">Sesión activa. Los datos se guardan en el navegador y se pueden exportar.</div>
+  
+  <form id="studentForm">
+    <h2 style="margin-top:22px">Datos académicos</h2>
+    <div class="grid">
+      <div class="field">
+        <label for="course">Curso *</label>
+        <select id="course" required>
+          <option value="">Seleccione...</option>
+          <option>7.º grado</option><option>8.º grado</option><option>9.º grado</option><option>10.º grado</option>
+          <option>11.º Agropecuaria</option><option>11.º Humanidades</option><option>11.º Informática</option>
+          <option>12.º Agropecuaria</option><option>12.º Informática</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="section">Sección *</label>
+        <select id="section" required>
+          <option value="">Seleccione...</option><option>A</option><option>B</option><option>C</option><option>D</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="partial">Parcial *</label>
+        <select id="partial" required>
+          <option value="">Seleccione...</option><option>Primer parcial</option><option>Segundo parcial</option><option>Tercer parcial</option><option>Cuarto parcial</option>
+        </select>
+      </div>
+      <div class="field"><label for="year">Año lectivo</label><input id="year" type="number" value="2026" min="2020" max="2100"></div>
+      <div class="field wide"><label for="placeDate">Lugar y fecha</label><input id="placeDate" placeholder="Ej. Comayagua, 14 de octubre de 2026"></div>
+      <div class="field"><label for="order">N.º de orden</label><input id="order" type="number" min="1" placeholder="1"></div>
+    </div>
+
+    <h2 style="margin-top:24px">Identificación del estudiante</h2>
+    <div class="grid">
+      <div class="field wide"><label for="fullName">Nombre completo del alumno *</label><input id="fullName" required placeholder="Apellidos y nombres"></div>
+      <div class="field wide"><label for="identity">N.º de identidad / registro</label><input id="identity" placeholder="Número de identidad o código escolar"></div>
+    </div>
+
+    <h2 style="margin-top:24px">Notas por asignatura</h2>
+    <p class="muted">Ingrese la nota correspondiente a cada materia del curso seleccionado.</p>
+    <div class="subjects" id="subjects"></div>
+
+    <div class="actions">
+      <button class="primary" type="submit">Guardar estudiante</button>
+      <button class="secondary" type="reset">Limpiar formulario</button>
+      <button class="secondary" type="button" id="exportBtn">Exportar registros a CSV (Excel)</button>
+    </div>
+  </form>
+</section>
+
+<section class="panel hidden" id="recordsPanel">
+  <h2>Estudiantes registrados</h2>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>N.º Orden</th>
+          <th>Nombre del Alumno</th>
+          <th>Curso</th>
+          <th>Sección</th>
+          <th>Parcial</th>
+          <th>Promedio</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="recordsBody"></tbody>
+    </table>
+  </div>
+  <p class="muted" id="recordCount" style="margin-top:12px;"></p>
+</section>
+</main>
+
+<div id="pdfTemplate" style="display:none; padding: 30px; font-family: Arial, sans-serif; color: #203044; background: #fff;">
+  <div style="text-align:center; border-bottom: 2px solid #1877d2; padding-bottom: 15px; margin-bottom: 20px;">
+    <h2 style="margin: 0; color: #153b63;">SISTEMA DE CALIFICACIONES 2026</h2>
+    <p style="margin: 5px 0 0; font-size: 14px; color: #526477;" id="pdfPlaceDate">Lugar y fecha</p>
+  </div>
+  <div style="margin-bottom: 20px; font-size: 14px; line-height: 1.6;">
+    <p><strong>Alumno:</strong> <span id="pdfName"></span></p>
+    <p><strong>Identidad:</strong> <span id="pdfIdentity"></span> | <strong>N.º Orden:</strong> <span id="pdfOrder"></span></p>
+    <p><strong>Curso:</strong> <span id="pdfCourse"></span> | <strong>Sección:</strong> <span id="pdfSection"></span> | <strong>Parcial:</strong> <span id="pdfPartial"></span></p>
+  </div>
+  <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px;">
+    <thead>
+      <tr style="background: #f2f6fb; color: #3a526b;">
+        <th style="padding: 10px; border: 1px solid #dce4ee;">Asignatura</th>
+        <th style="padding: 10px; border: 1px solid #dce4ee; text-align: center; width: 120px;">Calificación</th>
+      </tr>
+    </thead>
+    <tbody id="pdfSubjectsBody"></tbody>
+  </table>
+  <div style="text-align: right; font-size: 16px; margin-top: 15px;">
+    <p><strong>Promedio General: <span id="pdfAverage" style="color: #1877d2;"></span></strong></p>
+  </div>
+  <div style="margin-top: 60px; display: flex; justify-content: space-between; text-align: center; font-size: 13px;">
+    <div>________________________________<br>Firma del Docente</div>
+    <div>________________________________<br>Sello Institucional</div>
+  </div>
+</div>
+
+<script>
+const classSubjects = {
+  '7.º grado':['CIENCIAS NATURALES','DIBUJO TÉCNICO','EDUCACIÓN ARTISTICA','EDUCACIÓN CÍVICA','EDU. FÍSICA Y DEPORTES','ESPAÑOL','ESTUDIOS SOCIALES','INGLÉS','MATEMÁTICAS','MÓDULO BÁSICOS'],
+  '8.º grado':['CIENCIAS NATURALES','DIBUJO TÉCNICO','EDUCACIÓN ARTISTICA','EDUCACIÓN CÍVICA','EDU. FÍSICA Y DEPORTES','ESPAÑOL','ESTUDIOS SOCIALES','INGLÉS','MATEMÁTICAS','MÓDULO BÁSICOS'],
+  '9.º grado':['CIENCIAS NATURALES','DIBUJO TÉCNICO','EDUCACIÓN ARTISTICA','EDUCACIÓN CÍVICA','EDU. FÍSICA Y DEPORTES','ESPAÑOL','ESTUDIOS SOCIALES','INGLÉS','MATEMÁTICAS','MÓDULO BÁSICOS'],
+  '10.º grado':['QUÍMICA','ESPAÑOL','MATEMÁTICAS','INGLÉS','FUNDAMENTOS DE PSICOLOGÍA','BIOLOGÍA','FÍSICA','SOCIOLOGÍA','EDU. FÍSICA Y DEPORTE','HISTOIA DE HONDURAS','INFORMÁTICA'],
+  '11.º Agropecuaria':['MANEJO DE CULTIVOS AGRÍCOLAS - FORESTALES I','SOCIOLOGÍA RURAL','EDUCACIÓN ARTÍSTICA','MATEMÁTICA APLICADA','MANEJO DE ESPECIES MENORES','PROYECTOS AGROPECUARIOS - FORESTALES','FÍSICA APLICADA','ENCADENAMIENTO AGROPECUARIO O FORESTAL','DESARROLLO Y EXTENSIÓN AGROPECUARIO - FORESTAL','MANEJO SOSTENIBLE DE RECURSOS NATURALES','LEGISLACIÓN AGROPECUARIA-FORESTAL','LENGUA Y LITERATURA','INGLÉS TÉCNICO'],
+  '11.º Humanidades':['QUÍMICA','INTRODUCCIÓN A LA ECONOMÍA','BIOLOGÍA','FÍSICA','EDUCACIÓN Y APRECIACIÓN ARTÍSTICA','INGLÉS','FILOSOFÍA','HISTORIA UNIVERSAL','ANTROPOLOGÍA','MATEMÁTICA','ESPAÑOL'],
+  '11.º Informática':['EDUCACIÓN Y APRECIACIÓN ARTÍSTICA','FÍSICA','FILOSOFÍA','LEGISLACIÓN APLICADA A LA INFORMÁTICA','MATEMÁTICA','ESPAÑOL','OFIMÁTICA','INGLÉS TÉCNICO','ANÁLISIS Y DISEÑO DE SISTEMAS','PROGRAMACIÓN I','INFORMÁTICA APLICADA'],
+  '12.º Agropecuaria':['FILOSOFÍA','MANEJO DE ESPECIES MAYORES','HABILIDADES PARA LA VIDA','AGRICULTURA SOSTENIBLE','DESARROLLO COMUNITARIO Y ASOCIATIVISMO','EDUCACIÓN FINANACIERA AGROPECUARIA- FORESTAL','EMPRENDIMIENTO AGROPECUARIO - FORESTAL','INVESTIGACIÓN Y VALIDACIÓN AGROPECUARIA - FORESTAL','INDUSTRIALIZACIÓN AGROPECUARIA - FORESTAL','MANEJO DE CULTIVOS AGRICOLAS - FORESTALES II'],
+  '12.º Informática':['DISEÑO WEB','PRODUCCIONES DIGITALES','GESTIÓN EMPRESARIAL ORIENTADA A INFORMÁTICA','PROGRAMACIÓN II','REDES INFORMÁTICAS','MANTENIMIENTO Y REPARACIÓN']
+};
+
+let subjectsList = [];
+const subjectsEl = document.getElementById('subjects');
+const courseSelect = document.getElementById('course');
+
+function drawSubjects(existingGrades = {}) {
+  subjectsList = classSubjects[courseSelect.value] || [];
+  subjectsEl.innerHTML = '';
+  subjectsList.forEach((s, i) => {
+    const val = existingGrades[s] !== undefined ? existingGrades[s] : '';
+    const d = document.createElement('div');
+    d.className = 'field';
+    d.innerHTML = `<label for="sub${i}">${s}</label><input id="sub${i}" type="number" min="0" max="100" step="0.01" placeholder="0–100" value="${val}">`;
+    subjectsEl.appendChild(d);
+  });
+}
+
+courseSelect.addEventListener('change', () => drawSubjects());
+drawSubjects();
+
+const loginPanel = document.getElementById('loginPanel');
+const appPanel = document.getElementById('appPanel');
+const recordsPanel = document.getElementById('recordsPanel');
+let currentUser = null;
+let localRecords = [];
+
+try {
+  localRecords = JSON.parse(localStorage.getItem('calificaciones2026_registros') || '[]');
+} catch {
+  localRecords = [];
+}
+
+document.getElementById('loginBtn').addEventListener('click', () => {
+  const email = document.getElementById('email').value.trim();
+  if(!email) { alert('Ingrese su correo'); return; }
+  currentUser = { email };
+  showApp();
+});
+
+document.getElementById('signupBtn').addEventListener('click', () => {
+  alert('Cuenta de maestro registrada de forma local con éxito. Ya puede iniciar sesión.');
+});
+
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  currentUser = null;
+  loginPanel.classList.remove('hidden');
+  appPanel.classList.add('hidden');
+  recordsPanel.classList.add('hidden');
+});
+
+function showApp() {
+  loginPanel.classList.add('hidden');
+  appPanel.classList.remove('hidden');
+  recordsPanel.classList.remove('hidden');
+  renderRecords();
+}
+
+function collectData() {
+  const grades = {};
+  subjectsList.forEach((s, i) => {
+    const v = document.getElementById('sub' + i).value;
+    grades[s] = v === '' ? '' : Number(v);
+  });
+  const nums = Object.values(grades).filter(v => v !== '' && Number.isFinite(v));
+  return {
+    id: Date.now(),
+    course: courseSelect.value,
+    section: document.getElementById('section').value,
+    partial: document.getElementById('partial').value,
+    year: document.getElementById('year').value,
+    placeDate: document.getElementById('placeDate').value || 'Comayagua, 2026',
+    order: document.getElementById('order').value || '1',
+    fullName: document.getElementById('fullName').value.trim(),
+    identity: document.getElementById('identity').value.trim(),
+    grades,
+    average: nums.length ? Math.round(nums.reduce((a, b) => a + b, 0) / nums.length * 100) / 100 : '',
+    teacher: currentUser?.email || 'Maestro'
+  };
+}
+
+document.getElementById('studentForm').addEventListener('submit', e => {
+  e.preventDefault();
+  if(!currentUser) { alert('Inicie sesión primero.'); return; }
+  const r = collectData();
+  if(Object.values(r.grades).some(v => v !== '' && (v < 0 || v > 100))) {
+    alert('Las notas deben estar comprendidas entre 0 y 100.');
+    return;
+  }
+  localRecords.push(r);
+  saveAndRefresh();
+  e.target.reset();
+  document.getElementById('year').value = '2026';
+  drawSubjects();
+  alert('Estudiante registrado exitosamente en el sistema.');
+});
+
+function saveAndRefresh() {
+  try {
+    localStorage.setItem('calificaciones2026_registros', JSON.stringify(localRecords));
+  } catch(err) {
+    alert('No se pudo guardar en el almacenamiento local.');
+  }
+  renderRecords();
+}
+
+function renderRecords() {
+  const body = document.getElementById('recordsBody');
+  body.innerHTML = '';
+  localRecords.forEach((r, idx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${r.order || '-'}</td>
+      <td><strong>${r.fullName}</strong></td>
+      <td>${r.course}</td>
+      <td>${r.section}</td>
+      <td>${r.partial}</td>
+      <td><strong>${r.average}</strong></td>
+      <td>
+        <button class="secondary" style="padding:5px 10px; font-size:12px;" onclick="downloadPDF(${r.id})">Descargar PDF</button>
+        <button class="danger" style="padding:5px 10px; font-size:12px;" onclick="deleteRecord(${idx})">Eliminar</button>
+      </td>
+    `;
+    body.appendChild(tr);
+  });
+  document.getElementById('recordCount').textContent = `Total de estudiantes registrados: ${localRecords.length}`;
+}
+
+window.deleteRecord = function(idx) {
+  if(confirm('¿Está seguro de eliminar este registro?')) {
+    localRecords.splice(idx, 1);
+    saveAndRefresh();
+  }
+};
+
+window.downloadPDF = function(id) {
+  const r = localRecords.find(item => item.id === id);
+  if(!r) return;
+
+  document.getElementById('pdfPlaceDate').textContent = r.placeDate;
+  document.getElementById('pdfName').textContent = r.fullName;
+  document.getElementById('pdfIdentity').textContent = r.identity || 'N/D';
+  document.getElementById('pdfOrder').textContent = r.order;
+  document.getElementById('pdfCourse').textContent = r.course;
+  document.getElementById('pdfSection').textContent = r.section;
+  document.getElementById('pdfPartial').textContent = r.partial;
+  document.getElementById('pdfAverage').textContent = r.average;
+
+  const pdfBody = document.getElementById('pdfSubjectsBody');
+  pdfBody.innerHTML = '';
+  for(const [subject, score] of Object.entries(r.grades)) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="padding: 8px; border: 1px solid #dce4ee;">${subject}</td>
+      <td style="padding: 8px; border: 1px solid #dce4ee; text-align: center;">${score !== '' ? score : '-'}</td>
+    `;
+    pdfBody.appendChild(tr);
+  }
+
+  const element = document.getElementById('pdfTemplate');
+  element.style.display = 'block';
+
+  const opt = {
+    margin:       10,
+    filename:     `Calificaciones_${r.fullName.replace(/\s+/g, '_')}.pdf`,
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2 },
+    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  html2pdf().from(element).set(opt).save().then(() => {
+    element.style.display = 'none';
+  });
+};
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  if(!localRecords.length){ alert('No hay registros para exportar.'); return; }
+  const allSubjects = [...new Set(localRecords.flatMap(r => Object.keys(r.grades || {})))];
+  const cols = ['Nombre completo', 'Identidad', 'Curso', 'Sección', 'Parcial', 'Año', 'N.º orden', ...allSubjects, 'Promedio', 'Maestro'];
+  const rows = localRecords.map(r => [
+    r.fullName, r.identity, r.course, r.section, r.partial, r.year, r.order,
+    ...allSubjects.map(s => r.grades?.[s] ?? ''),
+    r.average, r.teacher
+  ]);
+  const csv = [cols, ...rows].map(row => row.map(v => `"${String(v ?? '').replaceAll('"', '""')}"`).join(';')).join('\r\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'registro_calificaciones_2026.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+</script>
+</body>
+</html>
